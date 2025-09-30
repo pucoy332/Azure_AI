@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>문서 유사도 검색</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <span style="font-size:2.2rem;">📄</span>
+        <h1 style="margin:0;">문서 유사도 검색 서비스</h1>
+      </div>
+      <div style="color:#555;font-size:15px;margin-bottom:18px;">
+        Azure OpenAI 기반으로 요구사항을 입력하면 유사한 기존 산출물을 빠르게 추천합니다.<br>
+        <span style="color:#0366d6;font-weight:500;">문서 업로드 및 검색 기능</span>을 제공합니다.
+      </div>
+      <textarea id="query" placeholder="요구사항을 입력하세요..." rows="4"></textarea>
+      <div class="controls">
+        <label>결과 수: <input id="topk" type="number" value="5" min="1" max="20"/></label>
+        <button id="search">검색</button>
+      </div>
+      <div style="margin:18px 0;">
+  <input type="file" id="upload" accept=".docx,.pdf,.txt,.xlsx" multiple style="padding:8px;" />
+        <span style="font-size:14px;color:#555;">문서 업로드(.docx, .pdf, .txt, .xlsx)</span>
+  <div id="upload-progress-list" style="margin-top:10px;"></div>
+      </div>
+      <div id="results"></div>
+    </div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

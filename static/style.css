@@ -1,0 +1,141 @@
+/* 에러/로딩 메시지 스타일 */
+.error {
+	color: #d32f2f;
+	font-weight: 500;
+	text-align: center;
+	padding: 18px 0;
+}
+body {
+	font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+	background: linear-gradient(135deg, #e0e7ff 0%, #f7fafc 100%);
+	color: #222;
+}
+.container {
+	max-width: 760px;
+	margin: 48px auto;
+	padding: 32px 24px;
+	background: #fff;
+	border-radius: 16px;
+	box-shadow: 0 8px 32px rgba(2,6,23,0.12);
+}
+h1 {
+	margin-bottom: 16px;
+	font-size: 2rem;
+	color: #0366d6;
+}
+textarea {
+	width: 100%;
+	max-width: 600px;
+	min-width: 220px;
+	height: 80px;
+	max-height: 180px;
+	padding: 10px 12px;
+	border: 1.5px solid #b3b8c5;
+	border-radius: 8px;
+	font-size: 15px;
+	box-sizing: border-box;
+	resize: vertical;
+	margin-bottom: 8px;
+	transition: border 0.2s;
+}
+textarea:focus {
+	border-color: #0366d6;
+	outline: none;
+}
+.controls {
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	margin-top: 12px;
+}
+button {
+	background: linear-gradient(90deg, #0366d6 60%, #4f8cff 100%);
+	color: #fff;
+	border: none;
+	padding: 12px 18px;
+	border-radius: 8px;
+	cursor: pointer;
+	font-weight: 500;
+	box-shadow: 0 2px 8px rgba(3,102,214,0.08);
+	transition: background 0.2s;
+}
+button:hover {
+	background: linear-gradient(90deg, #024ea2 60%, #3576c9 100%);
+}
+.result {
+	padding: 18px 12px;
+	border-bottom: 1px solid #eef2f6;
+	background: #f6f8fa;
+	border-radius: 8px;
+	margin-bottom: 10px;
+		box-shadow: 0 2px 8px rgba(2,6,23,0.04);
+		transition: box-shadow 0.2s, background 0.2s;
+	}
+	.result:hover {
+		background: #e3eafc;
+		box-shadow: 0 4px 16px rgba(3,102,214,0.10);
+}
+.result h3 {
+	margin: 0 0 8px 0;
+	font-size: 17px;
+	color: #0366d6;
+}
+.result p {
+	margin: 0;
+	color: #333;
+}
+mark {
+	background: #ffe066;
+	color: #222;
+	border-radius: 3px;
+	padding: 0 2px;
+}
+a[download] {
+	color: #0366d6;
+	text-decoration: underline;
+	font-size: 14px;
+	margin-left: 4px;
+}
+@media (max-width: 600px) {
+	.container {
+		padding: 12px 4px;
+		border-radius: 8px;
+	}
+	h1 {
+		font-size: 1.3rem;
+	}
+	button {
+		padding: 10px 12px;
+		font-size: 14px;
+	}
+	.result {
+		padding: 12px 6px;
+		font-size: 14px;
+	}
+}
+mark {
+	background: #ffe066;
+	color: #222;
+	border-radius: 3px;
+	padding: 0 2px;
+}
+button {
+	background: linear-gradient(90deg, #0366d6 60%, #4f8cff 100%);
+	color: #fff;
+	border: none;
+	padding: 8px 14px;
+	border-radius: 6px;
+	cursor: pointer;
+	font-weight: 500;
+	box-shadow: 0 2px 8px rgba(3,102,214,0.08);
+	transition: background 0.2s;
+}
+button:hover {
+	background: linear-gradient(90deg, #024ea2 60%, #3576c9 100%);
+}
+a[download] {
+	color: #0366d6;
+	text-decoration: underline;
+	font-size: 14px;
+	margin-left: 4px;
+}
