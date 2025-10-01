@@ -2,7 +2,7 @@
 
 프로젝트 : 문서 유사도 검색 서비스
 
-내용 : Azure OpenAI 기반으로 요구사항을 입력하면 유사한 기존 산출물을 빠르게 추천하고 문서 업로드 및 검색 기능을 제공
+내용 : Azure OpenAI 기반으로 요구사항을 입력하면 유사한 기존 산출물을 빠르게 추천하고 문서 업로드 및 다운로드 기능을 제공
 
 최종 업로드 사이트 링크:  
 https://ms-azure-yeo-bebvbqevg5gzctdy.koreacentral-01.azurewebsites.net/static/index.html
@@ -60,4 +60,5 @@ https://ms-azure-yeo-bebvbqevg5gzctdy.koreacentral-01.azurewebsites.net/static/i
 
 5. **웹 프론트엔드**  
    index.html 등에서 API 호출 및 결과 표시
+
 
