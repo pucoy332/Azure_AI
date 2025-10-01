@@ -1,3 +1,75 @@
+import threading
+def update_faiss_index_single(doc):
+    """
+    단일 문서(doc: dict)만 임베딩하여 faiss_index.bin과 meta.json을 갱신
+    """
+    import numpy as np
+    import faiss
+    import os
+    import json
+    from pathlib import Path
+    import openai
+    try:
+        from filelock import FileLock
+    except ImportError:
+        FileLock = None
+    BASE_DIR = Path(__file__).parent
+    FAISS_INDEX_PATH = BASE_DIR / 'faiss_index.bin'
+    META_PATH = BASE_DIR / 'meta.json'
+    EMBED_MODEL = os.getenv('EMBED_MODEL') or os.getenv('EMBED_DEPLOYMENT')
+    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY') or os.getenv('AZURE_OPENAI_KEY')
+    OPENAI_API_BASE = os.getenv('OPENAI_API_BASE') or os.getenv('AZURE_OPENAI_ENDPOINT')
+    openai.api_key = OPENAI_API_KEY
+    openai.api_base = OPENAI_API_BASE
+    def get_openai_embedding(text):
+        max_length = 8000
+        if text and len(text) > max_length:
+            text = text[:max_length]
+        response = openai.embeddings.create(
+            input=[text],
+            model=EMBED_MODEL
+        )
+        embedding = response.data[0].embedding
+        return np.array(embedding, dtype=np.float32)
+    # 락 사용(동시성 방지)
+    lock_path = str(FAISS_INDEX_PATH) + '.lock'
+    lock = FileLock(lock_path) if FileLock else None
+    try:
+        if lock:
+            lock.acquire(timeout=30)
+        # 메타 로드
+        if META_PATH.exists():
+            with open(META_PATH, encoding='utf-8') as f:
+                meta = json.load(f)
+        else:
+            meta = []
+        # 인덱스 로드/생성
+        if FAISS_INDEX_PATH.exists():
+            index = faiss.read_index(str(FAISS_INDEX_PATH))
+        else:
+            # 첫 벡터 shape 추정(임베딩 1회)
+            emb = get_openai_embedding(doc['text'])
+            index = faiss.IndexFlatL2(len(emb))
+            index.add(emb.reshape(1, -1))
+            meta.append(doc)
+            with open(META_PATH, 'w', encoding='utf-8') as f:
+                json.dump(meta, f, ensure_ascii=False, indent=2)
+            faiss.write_index(index, str(FAISS_INDEX_PATH))
+            print(f"[app.py] faiss_index.bin 새로 생성 및 1개 벡터 추가 완료!")
+            return
+        # 기존 인덱스 append
+        emb = get_openai_embedding(doc['text'])
+        index.add(emb.reshape(1, -1))
+        meta.append(doc)
+        with open(META_PATH, 'w', encoding='utf-8') as f:
+            json.dump(meta, f, ensure_ascii=False, indent=2)
+        faiss.write_index(index, str(FAISS_INDEX_PATH))
+        print(f"[app.py] faiss_index.bin 벡터 append 및 meta.json 동기화 완료!")
+    except Exception as e:
+        print(f"[app.py] faiss_index.bin 갱신 실패: {e}")
+    finally:
+        if lock:
+            lock.release()
 
 
 # ===== 정상 구조로 전체 재정리 =====
@@ -192,35 +264,21 @@ async def upload_file(file: UploadFile = File(...), overwrite: str = Form('0')):
         except Exception as se:
             search_result = {"error": f"Search 인덱스 추가 오류: {str(se)}"}
 
-        # meta.json에 새 파일 정보 추가 (중복시 덮어쓰기)
+        # meta.json에 새 파일 정보 추가 (중복시 덮어쓰기) 및 faiss_index.bin 동기화
         try:
-            meta_path = BASE_DIR / 'meta.json'
-            meta = []
-            if meta_path.exists():
-                with open(meta_path, encoding='utf-8') as f:
-                    meta = json.load(f)
-            # 파일명 중복시 기존 항목 제거
-            meta = [item for item in meta if item.get('source') != file.filename]
-            # 새 항목 추가
-            meta.append({
+            doc = {
                 'source': file.filename,
                 'text': text_content if text_content else '',
                 'content_type': file.content_type,
                 'size': len(content)
-            })
-            with open(meta_path, 'w', encoding='utf-8') as f:
-                json.dump(meta, f, ensure_ascii=False, indent=2)
+            }
+            # 기존 meta.json에서 동일 파일 제거 후 append, faiss_index.bin도 append
+            def run_update():
+                update_faiss_index_single(doc)
+            # 임베딩/인덱싱은 별도 스레드에서 실행(업로드 응답 지연 방지)
+            threading.Thread(target=run_update, daemon=True).start()
         except Exception as me:
-            print(f"meta.json 갱신 오류: {me}")
-
-        # 업로드 성공 후 ingest.py 자동 실행 (FAISS 인덱스 갱신)
-        try:
-            import subprocess, sys
-            python_exe = sys.executable  # 현재 FastAPI가 실행 중인 파이썬 경로
-            subprocess.Popen([python_exe, 'ingest.py'], cwd=str(BASE_DIR))
-        except Exception as ie:
-            print(f"ingest.py 자동 실행 오류: {ie}")
-
+            print(f"meta/faiss_index 갱신 오류: {me}")
         return {"message": "Azure Storage 업로드 성공", "filename": file.filename, "search_index": search_result}
     except Exception as e:
         return {"error": str(e)}
@@ -326,11 +384,9 @@ async def summarize(request: Request):
     except Exception as e:
         return JSONResponse({"error": str(e)})
 
+
 FAISS_INDEX_PATH = BASE_DIR / 'faiss_index.bin'
 META_PATH = BASE_DIR / 'meta.json'
-faiss_index = faiss.read_index(str(FAISS_INDEX_PATH))
-with open(META_PATH, encoding='utf-8') as f:
-    meta = json.load(f)
 
 def get_openai_embedding(text):
     response = openai.embeddings.create(
@@ -340,11 +396,27 @@ def get_openai_embedding(text):
     return np.array(response.data[0].embedding, dtype=np.float32).reshape(1, -1)
 
 def vector_search(query, top_k=5):
+    # 검색 시마다 최신 인덱스/메타 로딩 및 상세 로그 출력
+    print("[vector_search] --- 검색 시작 ---")
+    print(f"[vector_search] faiss_index.bin: {FAISS_INDEX_PATH}, meta.json: {META_PATH}")
+    faiss_index = faiss.read_index(str(FAISS_INDEX_PATH))
+    with open(META_PATH, encoding='utf-8') as f:
+        meta = json.load(f)
+    print(f"[vector_search] meta.json 문서 개수: {len(meta)}")
     query_vec = get_openai_embedding(query)
+    print(f"[vector_search] 쿼리 임베딩 shape: {query_vec.shape}")
+    try:
+        index_ntotal = faiss_index.ntotal
+    except Exception as e:
+        index_ntotal = '알 수 없음'
+    print(f"[vector_search] faiss_index.bin 벡터 개수: {index_ntotal}")
     D, I = faiss_index.search(query_vec, top_k)
+    print(f"[vector_search] faiss_index.search 결과 D: {D}, I: {I}")
     results = []
     for idx, score in zip(I[0], D[0]):
+        print(f"[vector_search] 결과 idx: {idx}, score: {score}")
         if idx < 0 or idx >= len(meta):
+            print(f"[vector_search] idx {idx}가 meta 범위({len(meta)})를 벗어남, continue")
             continue
         item = meta[idx]
         similarity = 1 / (1 + float(score))
@@ -352,6 +424,8 @@ def vector_search(query, top_k=5):
             '문서명': item.get('source', '제목없음'),
             '유사도': similarity
         })
+    print(f"[vector_search] 최종 결과 개수: {len(results)}")
+    print("[vector_search] --- 검색 종료 ---")
     results = sorted(results, key=lambda x: -x['유사도'])
     return results
 
@@ -370,4 +444,3 @@ async def search(q: str = Query(..., description="검색 질의"), top_k: int = 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
-
