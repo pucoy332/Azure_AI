@@ -36,7 +36,7 @@ https://ms-azure-yeo-bebvbqevg5gzctdy.koreacentral-01.azurewebsites.net/static/i
 ## 2. 기술 스택
 
 - **Backend**: FastAPI, Python
-- **AI/임베딩**: Azure OpenAI (gpt-4.1-mini, text-embedding-3-large)
+- **AI/임베딩**: Azure OpenAI (gpt-35-turbo, text-embedding-3-large)
 - **벡터 검색**: FAISS
 - **Storage**: Azure Blob Storage
 - **Frontend**: HTML/JS/CSS (static 폴더)
@@ -60,3 +60,4 @@ https://ms-azure-yeo-bebvbqevg5gzctdy.koreacentral-01.azurewebsites.net/static/i
 
 5. **웹 프론트엔드**  
    index.html 등에서 API 호출 및 결과 표시
+
